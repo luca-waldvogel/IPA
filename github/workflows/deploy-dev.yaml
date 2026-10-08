@@ -1,0 +1,104 @@
+name: Deployment DEV
+
+on:
+  workflow_dispatch:
+    inputs:
+      job_to_run:
+        description: 'Select a job to run or "all"'
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - extraction
+          - elaboration
+          - api
+          - ingestion
+          - pool-ingestion
+          - pool-api
+          - migrator
+          - error-summary #IPA
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-dev
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Jobfit Functions
+    runs-on: ubuntu-latest
+    environment: dev
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+    strategy:
+      fail-fast: true
+      matrix:
+        job:
+          - name: elaboration
+            path: services/elaboration
+          - name: extraction
+            path: services/extract
+          - name: ingestion
+            path: services/ingestion
+          - name: pool-ingestion
+            path: services/pool/ingestion
+          - name: pool-api
+            path: services/pool/api
+          - name: api
+            path: api
+          - name: migrator
+            path: migrator
+          - name: error-summary #IPA
+            path: services/error_summary #IPA
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: extractions/setup-just@v3
+        with:
+          github-token: ${{ github.token }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Add SSH key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -v github.com >> ~/.ssh/known_hosts
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          ssh-add -v - <<< $SSH_KEY
+        env:
+          SSH_KEY: ${{ secrets.SNM_GITHUB_PK_DECRYPTED }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_SHARED_ID }}:role/jobfit-github-actions-dev-oidc-lambda-deployer
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Build and deploy ${{ matrix.job.name }}
+        if: ${{ github.event_name == 'push' || github.event.inputs.job_to_run == 'all' || github.event.inputs.job_to_run == matrix.job.name }}
+        working-directory: ${{ matrix.job.path }}
+        run: |
+          set -o pipefail
+          case "${{ matrix.job.name }}" in
+            migrator)
+              just build-and-push-ecr dev
+              ;;
+            *)
+              just build-and-deploy dev
+              ;;
+          esac

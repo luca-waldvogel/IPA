@@ -1,0 +1,78 @@
+# WARNING: This is just a meta root-project for LOCAL USE. It's NOT used for actual deployment of anything.
+#          This way, when working on JobFit locally, you can just use a single virtualenv and get along well with PyCharm.
+#
+# DO NOT PUT any dependencies other than jobfit modules here. These belong to the individual modules.
+# PLEASE UPDATE any time you add a new module to the project.
+
+[project]
+name = "jobfit-root"
+version = "0.0.0"
+requires-python = "==3.14.*"
+
+dependencies = [
+    "jobfit-app[test]",
+    "jobfit-api[test]",
+    "jobfit-database[test]",
+    "jobfit-extract[drafts,geocoding,textract,test]",
+    "jobfit-jc-client[test]",
+    "jobfit-llm[test]",
+    "jobfit-model",
+    "jobfit-http",
+    "jobfit-testutils",
+    "jobfit-observability[test]",
+    "jobfit-event",
+    "jobfit-migrator",
+    "jobfit-services-elaboration[test]",
+    "jobfit-services-error_summary[test]", #IPA
+    "jobfit-services-extract[test]",
+    "jobfit-services-ingestion",
+    "jobfit-services-pool-ingestion",
+    "jobfit-services-pool-api",
+    "jobfit-tools-api_tests",
+    "jobfit-tools-service_tests",
+    "jobfit-tools-quickeval[test]",
+    "jobfit-tools-labelling",
+    "jobfit-vector[training,test]",
+]
+
+[tool.uv]
+# TODO: Remove this once Docling and jcml are in sync or not used:
+# Force huggingface-hub, because of Docling - jcml discrepancy:
+override-dependencies = ["huggingface-hub>=0.34.0,<1.0"]
+
+[tool.uv.sources]
+jobfit-app = { path = "libs/app", editable = true }
+jobfit-api = { path = "api", editable = true }
+jobfit-database = { path = "libs/database", editable = true }
+jobfit-extract = { path = "libs/extract", editable = true }
+jobfit-jc-client = { path = "libs/jc_client", editable = true }
+jobfit-llm = { path = "libs/llm", editable = true }
+jobfit-model = { path = "libs/model", editable = true }
+jobfit-http = { path = "libs/http", editable = true }
+jobfit-testutils = { path = "libs/testutils", editable = true }
+jobfit-observability = { path = "libs/observability", editable = true }
+jobfit-event = { path = "libs/event", editable = true }
+jobfit-migrator = { path = "migrator", editable = true }
+jobfit-services-elaboration = { path = "services/elaboration", editable = true }
+jobfit-services-error_summary = { path = "services/error_summary", editable = true } #IPA
+jobfit-services-extract = { path = "services/extract", editable = true }
+jobfit-services-ingestion = { path = "services/ingestion", editable = true }
+jobfit-services-pool-ingestion = { path = "services/pool/ingestion", editable = true }
+jobfit-services-pool-api = { path = "services/pool/api", editable = true }
+jobfit-tools-api_tests = { path = "tools/api_tests", editable = true }
+jobfit-tools-service_tests = { path = "tools/service_tests", editable = true }
+jobfit-tools-quickeval = { path = "tools/quickeval", editable = true }
+jobfit-tools-labelling = { path = "tools/labelling", editable = true }
+jobfit-vector = { path = "libs/vector", editable = true }
+
+[tool.ruff.lint.isort]
+known-first-party = ["jobfit"]
+
+[dependency-groups]
+dev = [
+    "boto3-stubs>=1.36.4",
+    "pre-commit>=4.3.0",
+    "pyright>=1.1.392.post0",
+    "ruff>=0.15.0",
+    "alembic>=1.17.0"
+]

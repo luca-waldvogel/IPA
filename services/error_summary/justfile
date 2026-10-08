@@ -1,0 +1,39 @@
+set allow-duplicate-variables := true
+
+tf-dir      := './infrastructure'
+docker-dir  := './../..'
+docker-file := 'docker/lambda-service/Dockerfile'
+
+import '../../just/terraform.just'
+import '../../just/docker.just'
+import '../../just/lambda.just'
+import '../../just/versioning.just'
+import '../../just/ecr.just'
+
+# Build the error-summary service's Docker image, tagging it with the given <version>.
+build version=auto-version: \
+    (docker-build 'jobfit/error-summary' version \
+        '--platform linux/amd64' \
+        '--build-arg JOBFIT_SERVICE_PATH=error_summary' \
+        '--build-arg JOBFIT_SERVICE_MODULE=error_summary')
+
+# Deploy the error-summary service to the given <env>, using the given <version> of the Docker image.
+deploy env version=auto-version: \
+    (docker-push-ecr env 'jobfit/error-summary' version) \
+    (lambda-deploy env 'jobfit-error-summary' 'jobfit/error-summary' version) \
+    (ecr-tag-as-deployed env 'jobfit/error-summary' version)
+
+# Promote the error-summary service (already deployed) with the given <version> to production.
+promote-to-prod version: \
+    (ecr-version-exists 'prod' 'jobfit/error-summary' version) \
+    (lambda-deploy 'prod' 'jobfit-error-summary' 'jobfit/error-summary' version) \
+    (ecr-tag-as-deployed 'prod' 'jobfit/error-summary' version)
+
+# Build and deploy the error-summary service to the given <env>, tagging it with the given <version>.
+build-and-deploy env version=auto-version: (build version) (deploy env version)
+
+# Build and deploy the error-summary service to the given <env> with infrastructure, tagging it with the given <version>.
+build-and-deploy-with-infra env version=auto-version: (build version) (deploy-with-infra env version)
+
+# Deploy the error-summary service to the given <env>, using the given <version> of the Docker image.
+deploy-with-infra env version=auto-version: (tf-deploy env) (deploy env version)

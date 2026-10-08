@@ -1,0 +1,157 @@
+name: Deployment PROD
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release (e.g. "v0.1.2")
+        type: string
+        required: true
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      terraform_templates: ${{ steps.loader.outputs.terraform_templates }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - id: loader
+        name: Load config
+        uses: ./.github/actions/load-config
+        with:
+          config: ./github-action-config.json
+
+  terraform-check:
+    name: Terraform Check
+    needs: prepare
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        module: ${{ fromJson(needs.prepare.outputs.terraform_templates) }}
+
+    steps:
+      - name: Set OP token
+        run: |
+          echo "OP_SERVICE_ACCOUNT_TOKEN=${{ secrets.OP_SERVICE_ACCOUNT_TOKEN_PROD }}" >> $GITHUB_ENV
+
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+
+      - uses: extractions/setup-just@v3
+        with:
+          github-token: ${{ github.token }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.12.2
+          terraform_wrapper: false
+
+      - name: Install 1Password CLI
+        uses: 1password/install-cli-action@v1
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_SHARED_ID }}:role/jobfit-github-actions-prod-oidc-terraform-plan
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Check changes to apply in template - ${{ matrix.module.name }}
+        working-directory: ${{ matrix.module.path }}
+        run: |
+          set -euo pipefail
+
+          # Create terraform.tfvars to apply override variables
+          DIR=$(just --evaluate tf-dir)
+
+          cd $DIR && cat <<EOF> terraform.tfvars
+          role_to_assume = {
+            prod = {
+              role_arn = "arn:aws:iam::304848207041:role/jobfit-github-actions-prod-terraform-plan-role"
+            }
+          }  
+          op_account = ""
+          EOF
+
+          PLAN_EXIT_CODE=0
+          just tf-plan ${{ matrix.module.path != 'infrastructure/shared' && 'prod' || '' }} || PLAN_EXIT_CODE=$?
+          exit $PLAN_EXIT_CODE
+
+  deploy:
+    needs: terraform-check
+    name: Jobfit Functions
+    runs-on: ubuntu-latest
+    environment: prod
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+    strategy:
+      fail-fast: true
+      max-parallel: 1
+      matrix:
+        job:
+          - name: elaboration
+            path: services/elaboration
+          - name: extraction
+            path: services/extract
+          - name: ingestion
+            path: services/ingestion
+          - name: pool-ingestion
+            path: services/pool/ingestion
+          - name: pool-api
+            path: services/pool/api
+          - name: api
+            path: api
+          - name: error-summary #IPA
+            path: services/error_summary #IPA
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: extractions/setup-just@v3
+        with:
+          github-token: ${{ github.token }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Add SSH key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -v github.com >> ~/.ssh/known_hosts
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          ssh-add -v - <<< $SSH_KEY
+        env:
+          SSH_KEY: ${{ secrets.SNM_GITHUB_PK_DECRYPTED }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_SHARED_ID }}:role/jobfit-github-actions-prod-oidc-lambda-deployer
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Promote dev to prod ${{ matrix.job.name }}
+        working-directory: ${{ matrix.job.path }}
+        run: |
+          set -o pipefail
+          just promote-to-prod '${{ github.event.inputs.version }}'

@@ -1,0 +1,163 @@
+{
+  "subprojects": {
+    "lib-database": {
+      "path": "libs/database",
+      "package": "jobfit.database",
+      "pytest": {
+        "start-local-db": true
+      },
+      "typer": {}
+    },
+    "lib-extract": {
+      "path": "libs/extract",
+      "package": "jobfit.extract",
+      "pytest": {
+        "extra-deps": "--extra textract"
+      },
+      "typer": {}
+    },
+    "lib-llm": {
+      "path": "libs/llm",
+      "package": "jobfit.llm",
+      "pytest": {},
+      "typer": {}
+    },
+    "lib-model": {
+      "path": "libs/model",
+      "package": "jobfit.model",
+      "pytest": {},
+      "typer": {}
+    },
+    "lib-app": {
+      "path": "libs/app",
+      "package": "jobfit.app",
+      "pytest": {},
+      "typer": {}
+    },
+    "lib-jc-client": {
+      "path": "libs/jc_client",
+      "package": "jobfit.jc_client",
+      "typer": {},
+      "pytest": {}
+    },
+    "lib-vector": {
+      "path": "libs/vector",
+      "package": "jobfit.vector",
+      "pytest": {
+        "extra-deps": "--extra training"
+      },
+      "typer": {}
+    },
+    "lib-observability": {
+      "path": "libs/observability",
+      "package": "jobfit.observability",
+      "typer": {}
+    },
+    "lib-testutils": {
+      "path": "libs/testutils",
+      "package": "jobfit.testutils",
+      "typer": {}
+    },
+    "tool-service-tests": {
+      "path": "tools/service_tests",
+      "package": "jobfit.tools.service_tests",
+      "typer": {}
+    },
+    "tool-api-test": {
+      "path": "tools/api_tests",
+      "package": "jobfit.tools.api_tests",
+      "typer": {}
+    },
+    "tool-labelling": {
+      "path": "tools/labelling",
+      "package": "jobfit.tools.labelling",
+      "typer": {}
+    },
+    "tool-quickeval": {
+      "path": "tools/quickeval",
+      "package": "jobfit.tools.quickeval",
+      "pytest": {
+        "extra-deps": "--extra generate"
+      },
+      "typer": {}
+    },
+    "service-extract": {
+      "path": "services/extract",
+      "package": "jobfit.services.extract",
+      "pytest": {},
+      "typer": {},
+      "terraform": {}
+    },
+    "service-elaboration": {
+      "path": "services/elaboration",
+      "package": "jobfit.services.elaboration",
+      "pytest": {},
+      "typer": {},
+      "terraform": {}
+    },
+    "service-ingestion": {
+      "path": "services/ingestion",
+      "package": "jobfit.services.ingestion",
+      "pytest": {},
+      "typer": {},
+      "terraform": {}
+    },
+    "pool-ingestion": {
+      "path": "services/pool/ingestion",
+      "package": "jobfit.services.pool.ingestion",
+      "pytest": {},
+      "typer": {},
+      "terraform": {}
+    },
+    "pool-api": {
+      "path": "services/pool/api",
+      "package": "jobfit.services.pool.api",
+      "typer": {},
+      "terraform": {}
+    },
+    "infra-dashboard": {
+      "path": "infrastructure/dashboard",
+      "terraform": {}
+    },
+    "infra-networking": {
+      "path": "infrastructure/networking",
+      "terraform": {}
+    },
+    "infra-processes": {
+      "path": "infrastructure/processes",
+      "terraform": {}
+    },
+    "infra-services-shared": {
+      "path": "infrastructure/services-shared",
+      "terraform": {}
+    },
+    "infra-shared": {
+      "path": "infrastructure/shared",
+      "terraform": {}
+    },
+    "infra-github-ci": {
+      "path": "infrastructure/github-ci",
+      "terraform": {}
+    },
+    "api": {
+      "path": "api",
+      "package": "jobfit.api",
+      "terraform": {},
+      "pytest": {},
+      "typer": {}
+    },
+    "migrator": {
+      "path": "migrator",
+      "package": "jobfit.migrator",
+      "terraform": {},
+      "typer": {}
+    },
+    "service-error-summary": {
+      "path": "services/error_summary",
+      "package": "jobfit.services.error_summary",
+      "pytest": {},
+      "typer": {},
+      "terraform": {}
+    }
+  }
+}

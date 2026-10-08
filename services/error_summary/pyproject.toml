@@ -1,0 +1,32 @@
+[project]
+name = "jobfit-services-error_summary"
+version = "0.0.0"
+requires-python = "==3.14.*"
+
+dependencies = [
+    # Jobfit
+    "jobfit-app",
+    "jobfit-model",
+    "jobfit-llm",
+    "jobfit-observability",
+]
+
+[project.optional-dependencies]
+test = ["jobfit-testutils"]
+
+[tool.uv.sources]
+jobfit-app = { path = "../../libs/app", editable = true }
+jobfit-model = { path = "../../libs/model", editable = true }
+jobfit-llm = { path = "../../libs/llm", editable = true }
+jobfit-testutils = { path = "../../libs/testutils", editable = true }
+jobfit-observability = { path = "../../libs/observability", editable = true }
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/jobfit"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
